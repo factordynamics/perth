@@ -1,0 +1,36 @@
+[package]
+name = "perth-bin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Command-line interface for Perth factor model"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "perth"
+path = "src/main.rs"
+
+[dependencies]
+perth.workspace = true
+perth-data.workspace = true
+perth-risk.workspace = true
+perth-factors.workspace = true
+toraniko-model.workspace = true
+toraniko-traits.workspace = true
+
+polars.workspace = true
+ndarray.workspace = true
+chrono.workspace = true
+clap.workspace = true
+tokio.workspace = true
+futures.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+indicatif.workspace = true
+dirs.workspace = true

@@ -1,0 +1,41 @@
+[package]
+name = "perth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Perth: An institutional-grade factor model built on toraniko-rs"
+
+[package.metadata.cargo-udeps.ignore]
+normal = ["toraniko", "toraniko-model", "toraniko-styles"]
+development = ["rstest"]
+
+[lints]
+workspace = true
+
+[features]
+default = []
+full = []
+
+[dependencies]
+perth-data.workspace = true
+perth-factors.workspace = true
+perth-risk.workspace = true
+perth-output.workspace = true
+
+toraniko.workspace = true
+toraniko-traits.workspace = true
+toraniko-model.workspace = true
+toraniko-styles.workspace = true
+
+polars.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true

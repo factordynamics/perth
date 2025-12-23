@@ -1,0 +1,33 @@
+[package]
+name = "perth-data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Data fetching and caching for Perth factor model"
+
+[package.metadata.cargo-udeps.ignore]
+development = ["rstest", "approx"]
+
+[lints]
+workspace = true
+
+[dependencies]
+polars.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+yahoo_finance_api.workspace = true
+time.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+quick-xml.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
+approx.workspace = true
