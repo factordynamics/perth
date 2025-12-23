@@ -9,6 +9,10 @@ Perth is an equity factor model for quantitative analysis. It fetches market dat
 
 The factor model decomposes asset returns as r = β × r_market + Σ(β_sector × r_sector) + Σ(β_style × r_style) + ε, separating total risk into systematic (factor) and idiosyncratic (specific) components.
 
+## Scope
+
+perth is a risk model, not an alpha model. It answers "why did returns happen?" rather than "what will returns be?" The regression explains today's returns using today's factor exposures, not tomorrow's returns from today's signals. You get a factor covariance matrix, specific risk estimates, and return attribution. Use these outputs for position sizing and risk limits, not for stock selection or ranking.
+
 ## Quick Start
 
 Analyze any stock using real market data:
