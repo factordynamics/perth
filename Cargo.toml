@@ -53,14 +53,14 @@ perth-factors = { version = "0.1.0", path = "crates/perth-factors" }
 perth-risk = { version = "0.1.0", path = "crates/perth-risk" }
 perth-output = { version = "0.1.0", path = "crates/perth-output" }
 
-# Toraniko dependency (use local path for development)
-toraniko = { path = "../toraniko-rs/crates/toraniko", default-features = false, features = ["full"] }
-toraniko-primitives = { path = "../toraniko-rs/crates/primitives" }
-toraniko-traits = { path = "../toraniko-rs/crates/traits" }
-toraniko-math = { path = "../toraniko-rs/crates/math" }
-toraniko-styles = { path = "../toraniko-rs/crates/styles" }
-toraniko-model = { path = "../toraniko-rs/crates/model" }
-toraniko-utils = { path = "../toraniko-rs/crates/utils" }
+# Toraniko dependencies from crates.io
+toraniko = { version = "0.1.3", default-features = false, features = ["full"] }
+toraniko-primitives = "0.1.3"
+toraniko-traits = "0.1.3"
+toraniko-math = "0.1.3"
+toraniko-styles = "0.1.3"
+toraniko-model = "0.1.3"
+toraniko-utils = "0.1.3"
 
 # DataFrames
 polars = { version = "0.46", default-features = false, features = ["lazy", "dtype-date", "dtype-datetime", "streaming", "rank", "rolling_window"] }
