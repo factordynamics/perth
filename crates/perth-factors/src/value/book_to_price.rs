@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the BookToPrice factor
@@ -50,48 +51,14 @@ impl Factor for BookToPriceFactor {
                 .otherwise(lit(NULL))
                 .alias("raw_b2p")]);
 
-        // Step 2: Winsorize if configured
+        // Step 2: Winsorize if configured using toraniko-math
         if self.config.winsorize {
-            let lower_pct = self.config.winsorize_pct;
-            let upper_pct = 1.0 - self.config.winsorize_pct;
-
-            result = result
-                .with_columns([
-                    col("raw_b2p")
-                        .quantile(lit(lower_pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("b2p_lower"),
-                    col("raw_b2p")
-                        .quantile(lit(upper_pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("b2p_upper"),
-                ])
-                .with_columns([when(col("raw_b2p").lt(col("b2p_lower")))
-                    .then(col("b2p_lower"))
-                    .when(col("raw_b2p").gt(col("b2p_upper")))
-                    .then(col("b2p_upper"))
-                    .otherwise(col("raw_b2p"))
-                    .alias("winsorized_b2p")]);
-        } else {
-            result = result.with_columns([col("raw_b2p").alias("winsorized_b2p")]);
+            result = winsorize_xsection(result, &["raw_b2p"], "date", self.config.winsorize_pct);
         }
 
-        // Step 3: Cross-sectional standardization (mean=0, std=1) by date
-        result = result
-            .with_columns([
-                col("winsorized_b2p")
-                    .mean()
-                    .over([col("date")])
-                    .alias("b2p_mean"),
-                col("winsorized_b2p")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("b2p_std"),
-            ])
-            .with_columns(
-                [((col("winsorized_b2p") - col("b2p_mean")) / col("b2p_std"))
-                    .alias("book_to_price_score")],
-            )
+        // Step 3: Cross-sectional standardization (mean=0, std=1) by date using toraniko-math
+        let result = result
+            .with_columns([center_xsection("raw_b2p", "date", true).alias("book_to_price_score")])
             .select([col("symbol"), col("date"), col("book_to_price_score")]);
 
         Ok(result)

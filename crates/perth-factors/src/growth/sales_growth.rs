@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the SalesGrowth factor
@@ -63,46 +64,15 @@ impl Factor for SalesGrowthFactor {
                 .otherwise(lit(NULL))
                 .alias("growth_rate")]);
 
-        // Apply winsorization if configured
+        // Apply winsorization if configured using toraniko-math
         if self.config.winsorize {
-            let pct = self.config.winsorize_pct;
-            result = result
-                .with_columns([
-                    col("growth_rate")
-                        .quantile(lit(pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("lower_bound"),
-                    col("growth_rate")
-                        .quantile(lit(1.0 - pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("upper_bound"),
-                ])
-                .with_columns([when(col("growth_rate").lt(col("lower_bound")))
-                    .then(col("lower_bound"))
-                    .when(col("growth_rate").gt(col("upper_bound")))
-                    .then(col("upper_bound"))
-                    .otherwise(col("growth_rate"))
-                    .alias("growth_rate_winsorized")]);
-        } else {
-            result = result.with_columns([col("growth_rate").alias("growth_rate_winsorized")]);
+            result =
+                winsorize_xsection(result, &["growth_rate"], "date", self.config.winsorize_pct);
         }
 
-        // Cross-sectional standardization by date
-        result = result
-            .with_columns([
-                col("growth_rate_winsorized")
-                    .mean()
-                    .over([col("date")])
-                    .alias("growth_mean"),
-                col("growth_rate_winsorized")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("growth_std"),
-            ])
-            .with_columns([when(col("growth_std").gt(0.0))
-                .then((col("growth_rate_winsorized") - col("growth_mean")) / col("growth_std"))
-                .otherwise(lit(0.0))
-                .alias("sales_growth_score")])
+        // Cross-sectional standardization by date using toraniko-math
+        let result = result
+            .with_columns([center_xsection("growth_rate", "date", true).alias("sales_growth_score")])
             .select([col("symbol"), col("date"), col("sales_growth_score")]);
 
         Ok(result)

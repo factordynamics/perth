@@ -12,6 +12,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::center_xsection;
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the Beta factor
@@ -116,17 +117,8 @@ impl Factor for BetaFactor {
             .with_columns([
                 (col("covariance") / (col("market_std") * col("market_std"))).alias("raw_beta"),
             ])
-            // Cross-sectional standardization by date
-            .with_columns([
-                col("raw_beta")
-                    .mean()
-                    .over([col("date")])
-                    .alias("beta_mean"),
-                col("raw_beta").std(1).over([col("date")]).alias("beta_std"),
-            ])
-            .with_columns([
-                ((col("raw_beta") - col("beta_mean")) / col("beta_std")).alias("beta_score")
-            ])
+            // Cross-sectional standardization by date using toraniko-math
+            .with_columns([center_xsection("raw_beta", "date", true).alias("beta_score")])
             .select([col("symbol"), col("date"), col("beta_score")]);
 
         Ok(result)

@@ -48,31 +48,6 @@ fn to_naive_date(dt: DateTime<Utc>) -> NaiveDate {
     dt.date_naive()
 }
 
-/// Fetch OHLCV data for all symbols in the universe.
-///
-/// Uses caching by default: checks SQLite cache first, then fetches missing
-/// data from Yahoo Finance and stores it in the cache.
-#[allow(dead_code)]
-pub(crate) async fn fetch_universe_data(
-    provider: &YahooQuoteProvider,
-    universe: &SP500Universe,
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
-) -> Result<DataFrame, DataPipelineError> {
-    fetch_universe_data_with_config(provider, universe, start, end, FetchConfig::default()).await
-}
-
-/// Fetch OHLCV data for all symbols with custom configuration.
-pub(crate) async fn fetch_universe_data_with_config(
-    provider: &YahooQuoteProvider,
-    universe: &SP500Universe,
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
-    config: FetchConfig,
-) -> Result<DataFrame, DataPipelineError> {
-    fetch_universe_data_with_progress(provider, universe, start, end, config, None).await
-}
-
 /// Default number of concurrent fetches.
 const DEFAULT_CONCURRENCY: usize = 10;
 
@@ -286,18 +261,6 @@ pub(crate) fn compute_market_cap_proxy(quotes: &DataFrame) -> Result<LazyFrame, 
         .select([col("date"), col("symbol"), col("market_cap")]);
 
     Ok(mkt_cap)
-}
-
-/// Fetch market benchmark (SPY) returns with caching support.
-///
-/// Returns a LazyFrame with columns: [date, market_return]
-#[allow(dead_code)]
-pub(crate) async fn fetch_market_benchmark(
-    provider: &YahooQuoteProvider,
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
-) -> Result<LazyFrame, DataPipelineError> {
-    fetch_market_benchmark_with_config(provider, start, end, FetchConfig::default()).await
 }
 
 /// Fetch market benchmark (SPY) returns with custom configuration.

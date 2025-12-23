@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the EarningsYield factor
@@ -54,46 +55,14 @@ impl Factor for EarningsYieldFactor {
                 .otherwise(lit(NULL))
                 .alias("raw_ey")]);
 
-        // Step 2: Winsorize if configured
+        // Step 2: Winsorize if configured using toraniko-math
         if self.config.winsorize {
-            let lower_pct = self.config.winsorize_pct;
-            let upper_pct = 1.0 - self.config.winsorize_pct;
-
-            result = result
-                .with_columns([
-                    col("raw_ey")
-                        .quantile(lit(lower_pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("ey_lower"),
-                    col("raw_ey")
-                        .quantile(lit(upper_pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("ey_upper"),
-                ])
-                .with_columns([when(col("raw_ey").lt(col("ey_lower")))
-                    .then(col("ey_lower"))
-                    .when(col("raw_ey").gt(col("ey_upper")))
-                    .then(col("ey_upper"))
-                    .otherwise(col("raw_ey"))
-                    .alias("winsorized_ey")]);
-        } else {
-            result = result.with_columns([col("raw_ey").alias("winsorized_ey")]);
+            result = winsorize_xsection(result, &["raw_ey"], "date", self.config.winsorize_pct);
         }
 
-        // Step 3: Cross-sectional standardization (mean=0, std=1) by date
-        result = result
-            .with_columns([
-                col("winsorized_ey")
-                    .mean()
-                    .over([col("date")])
-                    .alias("ey_mean"),
-                col("winsorized_ey")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("ey_std"),
-            ])
-            .with_columns([((col("winsorized_ey") - col("ey_mean")) / col("ey_std"))
-                .alias("earnings_yield_score")])
+        // Step 3: Cross-sectional standardization (mean=0, std=1) by date using toraniko-math
+        let result = result
+            .with_columns([center_xsection("raw_ey", "date", true).alias("earnings_yield_score")])
             .select([col("symbol"), col("date"), col("earnings_yield_score")]);
 
         Ok(result)

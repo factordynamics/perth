@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::center_xsection;
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the CompositeValue factor
@@ -42,49 +43,30 @@ impl Factor for CompositeValueFactor {
 
     fn compute_scores(&self, data: LazyFrame) -> Result<LazyFrame, FactorError> {
         // Step 1: Compute individual value components
-
         // Book-to-price: book_value / market_cap
-        let result =
-            data.sort(["symbol", "date"], Default::default())
-                .with_columns([when(col("market_cap").gt(lit(0.0)))
-                    .then(col("book_value") / col("market_cap"))
-                    .otherwise(lit(NULL))
-                    .alias("raw_b2p")])
-                // Earnings yield: earnings / market_cap
-                .with_columns([when(col("market_cap").gt(lit(0.0)))
-                    .then(col("earnings") / col("market_cap"))
-                    .otherwise(lit(NULL))
-                    .alias("raw_ey")])
-                // Step 2: Standardize each component cross-sectionally
-                .with_columns([
-                    col("raw_b2p").mean().over([col("date")]).alias("b2p_mean"),
-                    col("raw_b2p").std(1).over([col("date")]).alias("b2p_std"),
-                    col("raw_ey").mean().over([col("date")]).alias("ey_mean"),
-                    col("raw_ey").std(1).over([col("date")]).alias("ey_std"),
-                ])
-                .with_columns([
-                    ((col("raw_b2p") - col("b2p_mean")) / col("b2p_std")).alias("std_b2p"),
-                    ((col("raw_ey") - col("ey_mean")) / col("ey_std")).alias("std_ey"),
-                ])
-                // Step 3: Weighted average based on config
-                .with_columns([(col("std_b2p") * lit(self.config.book_to_price_weight)
-                    + col("std_ey") * lit(self.config.earnings_yield_weight))
-                .alias("raw_composite")])
-                // Step 4: Final cross-sectional standardization
-                .with_columns([
-                    col("raw_composite")
-                        .mean()
-                        .over([col("date")])
-                        .alias("composite_mean"),
-                    col("raw_composite")
-                        .std(1)
-                        .over([col("date")])
-                        .alias("composite_std"),
-                ])
-                .with_columns([((col("raw_composite") - col("composite_mean"))
-                    / col("composite_std"))
-                .alias("composite_value_score")])
-                .select([col("symbol"), col("date"), col("composite_value_score")]);
+        let result = data
+            .sort(["symbol", "date"], Default::default())
+            .with_columns([when(col("market_cap").gt(lit(0.0)))
+                .then(col("book_value") / col("market_cap"))
+                .otherwise(lit(NULL))
+                .alias("raw_b2p")])
+            // Earnings yield: earnings / market_cap
+            .with_columns([when(col("market_cap").gt(lit(0.0)))
+                .then(col("earnings") / col("market_cap"))
+                .otherwise(lit(NULL))
+                .alias("raw_ey")])
+            // Step 2: Standardize each component cross-sectionally using toraniko-math
+            .with_columns([
+                center_xsection("raw_b2p", "date", true).alias("std_b2p"),
+                center_xsection("raw_ey", "date", true).alias("std_ey"),
+            ])
+            // Step 3: Weighted average based on config
+            .with_columns([(col("std_b2p") * lit(self.config.book_to_price_weight)
+                + col("std_ey") * lit(self.config.earnings_yield_weight))
+            .alias("raw_composite")])
+            // Step 4: Final cross-sectional standardization using toraniko-math
+            .with_columns([center_xsection("raw_composite", "date", true).alias("composite_value_score")])
+            .select([col("symbol"), col("date"), col("composite_value_score")]);
 
         Ok(result)
     }

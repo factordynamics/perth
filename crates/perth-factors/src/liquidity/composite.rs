@@ -6,6 +6,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::center_xsection;
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the CompositeLiquidity factor
@@ -93,54 +94,18 @@ impl Factor for CompositeLiquidityFactor {
                         .over([col("symbol")])
                         .alias("raw_turnover"),
                 ])
-                // Cross-sectional standardization for Amihud
+                // Cross-sectional standardization using toraniko-math
                 .with_columns([
-                    col("raw_amihud")
-                        .mean()
-                        .over([col("date")])
-                        .alias("amihud_mean"),
-                    col("raw_amihud")
-                        .std(1)
-                        .over([col("date")])
-                        .alias("amihud_std"),
+                    center_xsection("raw_amihud", "date", true).alias("amihud_score"),
+                    center_xsection("raw_turnover", "date", true).alias("turnover_score"),
                 ])
-                .with_columns([
-                    ((col("raw_amihud") - col("amihud_mean")) / col("amihud_std"))
-                        .alias("amihud_score"),
-                ])
-                // Cross-sectional standardization for turnover
-                .with_columns([
-                    col("raw_turnover")
-                        .mean()
-                        .over([col("date")])
-                        .alias("turnover_mean"),
-                    col("raw_turnover")
-                        .std(1)
-                        .over([col("date")])
-                        .alias("turnover_std"),
-                ])
-                .with_columns([((col("raw_turnover") - col("turnover_mean"))
-                    / col("turnover_std"))
-                .alias("turnover_score")])
                 // Invert Amihud so higher = more liquid
                 // Combine with weights: composite = turnover_weight * turnover - amihud_weight * amihud
                 .with_columns([(col("turnover_score") * lit(turnover_weight)
                     - col("amihud_score") * lit(amihud_weight))
                 .alias("raw_composite")])
-                // Final cross-sectional standardization of composite
-                .with_columns([
-                    col("raw_composite")
-                        .mean()
-                        .over([col("date")])
-                        .alias("composite_mean"),
-                    col("raw_composite")
-                        .std(1)
-                        .over([col("date")])
-                        .alias("composite_std"),
-                ])
-                .with_columns([((col("raw_composite") - col("composite_mean"))
-                    / col("composite_std"))
-                .alias("composite_liquidity_score")])
+                // Final cross-sectional standardization of composite using toraniko-math
+                .with_columns([center_xsection("raw_composite", "date", true).alias("composite_liquidity_score")])
                 .select([col("symbol"), col("date"), col("composite_liquidity_score")]);
 
         Ok(result)

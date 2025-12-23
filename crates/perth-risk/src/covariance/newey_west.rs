@@ -172,19 +172,6 @@ impl NeweyWestEstimator {
 
         cov_lag
     }
-
-    /// Prewhiten returns using AR(1) model (optional)
-    ///
-    /// This can improve efficiency by removing first-order autocorrelation
-    /// before applying the Newey-West adjustment.
-    ///
-    /// Note: This is a placeholder for future implementation
-    #[allow(dead_code)]
-    fn prewhiten(&self, _factor_returns: &Array2<f64>) -> Array2<f64> {
-        // TODO: Implement AR(1) prewhitening
-        // For now, just return the original data
-        _factor_returns.clone()
-    }
 }
 
 impl CovarianceEstimator for NeweyWestEstimator {

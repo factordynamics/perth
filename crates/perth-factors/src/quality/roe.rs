@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the Roe factor
@@ -46,7 +47,7 @@ impl Factor for RoeFactor {
     fn compute_scores(&self, data: LazyFrame) -> Result<LazyFrame, FactorError> {
         // Compute ROE = net_income / shareholders_equity
         // Handle negative equity by setting to null
-        let result = data
+        let mut result = data
             .sort(["symbol", "date"], Default::default())
             .with_columns([
                 // Compute raw ROE ratio
@@ -60,47 +61,14 @@ impl Factor for RoeFactor {
                     .alias("roe_clean"),
             ]);
 
-        // Apply winsorization if configured
-        let result = if self.config.winsorize {
-            let pct = self.config.winsorize_pct;
-            result
-                .with_columns([
-                    col("roe_clean")
-                        .quantile(lit(pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("roe_lower"),
-                    col("roe_clean")
-                        .quantile(lit(1.0 - pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("roe_upper"),
-                ])
-                .with_columns([when(col("roe_clean").is_null())
-                    .then(lit(NULL))
-                    .when(col("roe_clean").lt(col("roe_lower")))
-                    .then(col("roe_lower"))
-                    .when(col("roe_clean").gt(col("roe_upper")))
-                    .then(col("roe_upper"))
-                    .otherwise(col("roe_clean"))
-                    .alias("roe_winsorized")])
-        } else {
-            result.with_columns([col("roe_clean").alias("roe_winsorized")])
-        };
+        // Apply winsorization if configured using toraniko-math
+        if self.config.winsorize {
+            result = winsorize_xsection(result, &["roe_clean"], "date", self.config.winsorize_pct);
+        }
 
-        // Cross-sectional standardization by date
+        // Cross-sectional standardization by date using toraniko-math
         let result = result
-            .with_columns([
-                col("roe_winsorized")
-                    .mean()
-                    .over([col("date")])
-                    .alias("roe_mean"),
-                col("roe_winsorized")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("roe_std"),
-            ])
-            .with_columns([
-                ((col("roe_winsorized") - col("roe_mean")) / col("roe_std")).alias("roe_score")
-            ])
+            .with_columns([center_xsection("roe_clean", "date", true).alias("roe_score")])
             .select([col("symbol"), col("date"), col("roe_score")]);
 
         Ok(result)

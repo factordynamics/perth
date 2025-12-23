@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::center_xsection;
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the CompositeQuality factor
@@ -62,30 +63,11 @@ impl Factor for CompositeQualityFactor {
         let result =
             result.with_columns([(lit(-1.0) * col("leverage_clean")).alias("leverage_inverted")]);
 
-        // Step 4: Standardize each component cross-sectionally by date
-        let result = result
-            .with_columns([
-                // Standardize ROE
-                col("roe_clean")
-                    .mean()
-                    .over([col("date")])
-                    .alias("roe_mean"),
-                col("roe_clean").std(1).over([col("date")]).alias("roe_std"),
-                // Standardize inverted leverage
-                col("leverage_inverted")
-                    .mean()
-                    .over([col("date")])
-                    .alias("leverage_mean"),
-                col("leverage_inverted")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("leverage_std"),
-            ])
-            .with_columns([
-                ((col("roe_clean") - col("roe_mean")) / col("roe_std")).alias("roe_standardized"),
-                ((col("leverage_inverted") - col("leverage_mean")) / col("leverage_std"))
-                    .alias("leverage_standardized"),
-            ]);
+        // Step 4: Standardize each component cross-sectionally by date using toraniko-math
+        let result = result.with_columns([
+            center_xsection("roe_clean", "date", true).alias("roe_standardized"),
+            center_xsection("leverage_inverted", "date", true).alias("leverage_standardized"),
+        ]);
 
         // Step 5: Weighted average based on config
         let roe_weight = self.config.roe_weight;
@@ -95,22 +77,9 @@ impl Factor for CompositeQualityFactor {
             + lit(leverage_weight) * col("leverage_standardized"))
         .alias("composite_raw")]);
 
-        // Step 6: Final cross-sectional standardization
+        // Step 6: Final cross-sectional standardization using toraniko-math
         let result = result
-            .with_columns([
-                col("composite_raw")
-                    .mean()
-                    .over([col("date")])
-                    .alias("composite_mean"),
-                col("composite_raw")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("composite_std"),
-            ])
-            .with_columns([
-                ((col("composite_raw") - col("composite_mean")) / col("composite_std"))
-                    .alias("composite_quality_score"),
-            ])
+            .with_columns([center_xsection("composite_raw", "date", true).alias("composite_quality_score")])
             .select([col("symbol"), col("date"), col("composite_quality_score")]);
 
         Ok(result)

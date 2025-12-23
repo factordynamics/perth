@@ -6,6 +6,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the CompositeGrowth factor
@@ -88,109 +89,28 @@ impl Factor for CompositeGrowthFactor {
                     .alias("sales_growth"),
             ]);
 
-        // Apply winsorization if configured
+        // Apply winsorization if configured using toraniko-math
         if self.config.winsorize {
-            let pct = self.config.winsorize_pct;
-            result = result
-                .with_columns([
-                    // Earnings growth bounds
-                    col("earnings_growth")
-                        .quantile(lit(pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("earnings_lower"),
-                    col("earnings_growth")
-                        .quantile(lit(1.0 - pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("earnings_upper"),
-                    // Sales growth bounds
-                    col("sales_growth")
-                        .quantile(lit(pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("sales_lower"),
-                    col("sales_growth")
-                        .quantile(lit(1.0 - pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("sales_upper"),
-                ])
-                .with_columns([
-                    when(col("earnings_growth").lt(col("earnings_lower")))
-                        .then(col("earnings_lower"))
-                        .when(col("earnings_growth").gt(col("earnings_upper")))
-                        .then(col("earnings_upper"))
-                        .otherwise(col("earnings_growth"))
-                        .alias("earnings_growth_winsorized"),
-                    when(col("sales_growth").lt(col("sales_lower")))
-                        .then(col("sales_lower"))
-                        .when(col("sales_growth").gt(col("sales_upper")))
-                        .then(col("sales_upper"))
-                        .otherwise(col("sales_growth"))
-                        .alias("sales_growth_winsorized"),
-                ]);
-        } else {
-            result = result.with_columns([
-                col("earnings_growth").alias("earnings_growth_winsorized"),
-                col("sales_growth").alias("sales_growth_winsorized"),
-            ]);
+            result = winsorize_xsection(
+                result,
+                &["earnings_growth", "sales_growth"],
+                "date",
+                self.config.winsorize_pct,
+            );
         }
 
-        // Standardize each component separately before combining
-        result = result
+        // Standardize each component separately before combining using toraniko-math
+        let result = result
             .with_columns([
-                // Standardize earnings growth
-                col("earnings_growth_winsorized")
-                    .mean()
-                    .over([col("date")])
-                    .alias("earnings_mean"),
-                col("earnings_growth_winsorized")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("earnings_std"),
-                // Standardize sales growth
-                col("sales_growth_winsorized")
-                    .mean()
-                    .over([col("date")])
-                    .alias("sales_mean"),
-                col("sales_growth_winsorized")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("sales_std"),
-            ])
-            .with_columns([
-                // Standardized earnings growth
-                when(col("earnings_std").gt(0.0))
-                    .then(
-                        (col("earnings_growth_winsorized") - col("earnings_mean"))
-                            / col("earnings_std"),
-                    )
-                    .otherwise(lit(0.0))
-                    .alias("earnings_growth_std"),
-                // Standardized sales growth
-                when(col("sales_std").gt(0.0))
-                    .then((col("sales_growth_winsorized") - col("sales_mean")) / col("sales_std"))
-                    .otherwise(lit(0.0))
-                    .alias("sales_growth_std"),
+                center_xsection("earnings_growth", "date", true).alias("earnings_growth_std"),
+                center_xsection("sales_growth", "date", true).alias("sales_growth_std"),
             ])
             // Combine with weights
             .with_columns([(col("earnings_growth_std") * lit(earnings_weight)
                 + col("sales_growth_std") * lit(sales_weight))
-            .alias("composite_growth_raw")]);
-
-        // Final cross-sectional standardization of composite score
-        result = result
-            .with_columns([
-                col("composite_growth_raw")
-                    .mean()
-                    .over([col("date")])
-                    .alias("composite_mean"),
-                col("composite_growth_raw")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("composite_std"),
-            ])
-            .with_columns([when(col("composite_std").gt(0.0))
-                .then((col("composite_growth_raw") - col("composite_mean")) / col("composite_std"))
-                .otherwise(lit(0.0))
-                .alias("composite_growth_score")])
+            .alias("composite_growth_raw")])
+            // Final cross-sectional standardization of composite score using toraniko-math
+            .with_columns([center_xsection("composite_growth_raw", "date", true).alias("composite_growth_score")])
             .select([col("symbol"), col("date"), col("composite_growth_score")]);
 
         Ok(result)

@@ -5,6 +5,7 @@
 
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
+use toraniko_math::{center_xsection, winsorize_xsection};
 use toraniko_traits::{Factor, FactorError, FactorKind, StyleFactor};
 
 /// Configuration for the Leverage factor
@@ -46,7 +47,7 @@ impl Factor for LeverageFactor {
     fn compute_scores(&self, data: LazyFrame) -> Result<LazyFrame, FactorError> {
         // Compute leverage = total_debt / shareholders_equity
         // Handle negative/zero equity by setting to null
-        let result = data
+        let mut result = data
             .sort(["symbol", "date"], Default::default())
             .with_columns([
                 // Compute raw leverage ratio
@@ -60,49 +61,17 @@ impl Factor for LeverageFactor {
                     .alias("leverage_clean"),
             ]);
 
-        // Apply winsorization if configured
-        let result = if self.config.winsorize {
-            let pct = self.config.winsorize_pct;
-            result
-                .with_columns([
-                    col("leverage_clean")
-                        .quantile(lit(pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("leverage_lower"),
-                    col("leverage_clean")
-                        .quantile(lit(1.0 - pct), QuantileMethod::Linear)
-                        .over([col("date")])
-                        .alias("leverage_upper"),
-                ])
-                .with_columns([when(col("leverage_clean").is_null())
-                    .then(lit(NULL))
-                    .when(col("leverage_clean").lt(col("leverage_lower")))
-                    .then(col("leverage_lower"))
-                    .when(col("leverage_clean").gt(col("leverage_upper")))
-                    .then(col("leverage_upper"))
-                    .otherwise(col("leverage_clean"))
-                    .alias("leverage_winsorized")])
-        } else {
-            result.with_columns([col("leverage_clean").alias("leverage_winsorized")])
-        };
+        // Apply winsorization if configured using toraniko-math
+        if self.config.winsorize {
+            result =
+                winsorize_xsection(result, &["leverage_clean"], "date", self.config.winsorize_pct);
+        }
 
         // Invert sign: lower leverage = higher quality score
-        // Cross-sectional standardization by date
+        // Cross-sectional standardization by date using toraniko-math
         let result = result
-            .with_columns([(lit(-1.0) * col("leverage_winsorized")).alias("leverage_inverted")])
-            .with_columns([
-                col("leverage_inverted")
-                    .mean()
-                    .over([col("date")])
-                    .alias("leverage_mean"),
-                col("leverage_inverted")
-                    .std(1)
-                    .over([col("date")])
-                    .alias("leverage_std"),
-            ])
-            .with_columns([((col("leverage_inverted") - col("leverage_mean"))
-                / col("leverage_std"))
-            .alias("leverage_score")])
+            .with_columns([(lit(-1.0) * col("leverage_clean")).alias("leverage_inverted")])
+            .with_columns([center_xsection("leverage_inverted", "date", true).alias("leverage_score")])
             .select([col("symbol"), col("date"), col("leverage_score")]);
 
         Ok(result)
