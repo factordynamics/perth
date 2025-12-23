@@ -76,7 +76,9 @@ impl Factor for EarningsGrowthFactor {
 
         // Cross-sectional standardization by date using toraniko-math
         let result = result
-            .with_columns([center_xsection("growth_rate", "date", true).alias("earnings_growth_score")])
+            .with_columns([
+                center_xsection("growth_rate", "date", true).alias("earnings_growth_score")
+            ])
             .select([col("symbol"), col("date"), col("earnings_growth_score")]);
 
         Ok(result)

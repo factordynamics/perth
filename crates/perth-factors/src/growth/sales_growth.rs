@@ -72,7 +72,9 @@ impl Factor for SalesGrowthFactor {
 
         // Cross-sectional standardization by date using toraniko-math
         let result = result
-            .with_columns([center_xsection("growth_rate", "date", true).alias("sales_growth_score")])
+            .with_columns(
+                [center_xsection("growth_rate", "date", true).alias("sales_growth_score")],
+            )
             .select([col("symbol"), col("date"), col("sales_growth_score")]);
 
         Ok(result)

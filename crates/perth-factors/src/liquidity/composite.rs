@@ -105,7 +105,8 @@ impl Factor for CompositeLiquidityFactor {
                     - col("amihud_score") * lit(amihud_weight))
                 .alias("raw_composite")])
                 // Final cross-sectional standardization of composite using toraniko-math
-                .with_columns([center_xsection("raw_composite", "date", true).alias("composite_liquidity_score")])
+                .with_columns([center_xsection("raw_composite", "date", true)
+                    .alias("composite_liquidity_score")])
                 .select([col("symbol"), col("date"), col("composite_liquidity_score")]);
 
         Ok(result)

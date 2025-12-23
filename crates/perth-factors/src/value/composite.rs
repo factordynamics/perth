@@ -65,7 +65,9 @@ impl Factor for CompositeValueFactor {
                 + col("std_ey") * lit(self.config.earnings_yield_weight))
             .alias("raw_composite")])
             // Step 4: Final cross-sectional standardization using toraniko-math
-            .with_columns([center_xsection("raw_composite", "date", true).alias("composite_value_score")])
+            .with_columns([
+                center_xsection("raw_composite", "date", true).alias("composite_value_score")
+            ])
             .select([col("symbol"), col("date"), col("composite_value_score")]);
 
         Ok(result)

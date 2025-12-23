@@ -79,7 +79,9 @@ impl Factor for CompositeQualityFactor {
 
         // Step 6: Final cross-sectional standardization using toraniko-math
         let result = result
-            .with_columns([center_xsection("composite_raw", "date", true).alias("composite_quality_score")])
+            .with_columns([
+                center_xsection("composite_raw", "date", true).alias("composite_quality_score")
+            ])
             .select([col("symbol"), col("date"), col("composite_quality_score")]);
 
         Ok(result)

@@ -63,15 +63,21 @@ impl Factor for LeverageFactor {
 
         // Apply winsorization if configured using toraniko-math
         if self.config.winsorize {
-            result =
-                winsorize_xsection(result, &["leverage_clean"], "date", self.config.winsorize_pct);
+            result = winsorize_xsection(
+                result,
+                &["leverage_clean"],
+                "date",
+                self.config.winsorize_pct,
+            );
         }
 
         // Invert sign: lower leverage = higher quality score
         // Cross-sectional standardization by date using toraniko-math
         let result = result
             .with_columns([(lit(-1.0) * col("leverage_clean")).alias("leverage_inverted")])
-            .with_columns([center_xsection("leverage_inverted", "date", true).alias("leverage_score")])
+            .with_columns([
+                center_xsection("leverage_inverted", "date", true).alias("leverage_score")
+            ])
             .select([col("symbol"), col("date"), col("leverage_score")]);
 
         Ok(result)

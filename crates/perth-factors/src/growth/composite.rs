@@ -110,7 +110,8 @@ impl Factor for CompositeGrowthFactor {
                 + col("sales_growth_std") * lit(sales_weight))
             .alias("composite_growth_raw")])
             // Final cross-sectional standardization of composite score using toraniko-math
-            .with_columns([center_xsection("composite_growth_raw", "date", true).alias("composite_growth_score")])
+            .with_columns([center_xsection("composite_growth_raw", "date", true)
+                .alias("composite_growth_score")])
             .select([col("symbol"), col("date"), col("composite_growth_score")]);
 
         Ok(result)
