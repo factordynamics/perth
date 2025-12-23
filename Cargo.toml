@@ -11,8 +11,8 @@ categories = ["finance", "mathematics", "science"]
 
 [workspace]
 resolver = "2"
-members = ["crates/*"]
-default-members = ["crates/bin"]
+members = ["crates/*", "bin"]
+default-members = ["bin"]
 
 [workspace.lints.rust]
 missing-debug-implementations = "warn"
@@ -47,7 +47,7 @@ codegen-units = 16
 [workspace.dependencies]
 # Internal crates
 perth = { version = "0.1.0", path = "crates/perth", default-features = false }
-perth-bin = { version = "0.1.0", path = "crates/bin" }
+perth-bin = { version = "0.1.0", path = "bin" }
 perth-data = { version = "0.1.0", path = "crates/perth-data" }
 perth-factors = { version = "0.1.0", path = "crates/perth-factors" }
 perth-risk = { version = "0.1.0", path = "crates/perth-risk" }
