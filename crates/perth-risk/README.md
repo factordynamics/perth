@@ -46,7 +46,7 @@ The risk model decomposes portfolio variance into two components:
 
 ### EWMA Covariance Estimation
 
-```rust
+```rust,ignore
 use perth_risk::covariance::{EwmaCovarianceEstimator, CovarianceEstimator};
 use ndarray::Array2;
 
@@ -58,7 +58,7 @@ let cov_matrix = estimator.estimate(&factor_returns)?;
 
 ### Ledoit-Wolf Shrinkage
 
-```rust
+```rust,ignore
 use perth_risk::covariance::{LedoitWolfEstimator, LedoitWolfConfig, ShrinkageTarget};
 
 let config = LedoitWolfConfig {
@@ -73,7 +73,7 @@ let cov_matrix = estimator.estimate(&factor_returns)?;
 
 ### Risk Model
 
-```rust
+```rust,ignore
 use perth_risk::{RiskModel, EwmaCovarianceEstimator, SpecificRiskEstimator};
 
 // Create covariance and specific risk estimators

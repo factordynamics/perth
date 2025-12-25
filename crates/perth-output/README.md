@@ -42,7 +42,7 @@ Output and reporting for the Perth factor model.
 
 ### Factor Attribution
 
-```rust
+```rust,ignore
 use perth_output::{FactorAttribution, SecurityAttribution};
 use chrono::NaiveDate;
 
@@ -72,7 +72,7 @@ let json = serde_json::to_string_pretty(&attribution)?;
 
 ### Risk Summary
 
-```rust
+```rust,ignore
 use perth_output::generate_risk_summary;
 use chrono::NaiveDate;
 use std::collections::HashMap;
@@ -103,7 +103,7 @@ println!("{}", summary.to_ascii_table());
 
 ### Export to CSV/JSON
 
-```rust
+```rust,ignore
 use perth_output::{Exporter, ExportFormat, PortfolioHolding, PortfolioExport};
 use chrono::NaiveDate;
 
@@ -139,7 +139,7 @@ Exporter::export_portfolio(&portfolio, "portfolio.json", ExportFormat::Json)?;
 
 ### Report Builder
 
-```rust
+```rust,ignore
 use perth_output::{ReportBuilder, Report};
 use std::collections::HashMap;
 

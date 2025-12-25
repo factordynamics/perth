@@ -49,18 +49,19 @@ codegen-units = 16
 perth = { version = "0.1.0", path = "crates/perth", default-features = false }
 perth-bin = { version = "0.1.0", path = "bin" }
 perth-data = { version = "0.1.0", path = "crates/perth-data" }
-perth-factors = { version = "0.1.0", path = "crates/perth-factors" }
 perth-risk = { version = "0.1.0", path = "crates/perth-risk" }
 perth-output = { version = "0.1.0", path = "crates/perth-output" }
 
+# Factor computation
+factors = "0.2"
+
 # Toraniko dependencies from crates.io
-toraniko = { version = "0.1.3", default-features = false, features = ["full"] }
-toraniko-primitives = "0.1.3"
-toraniko-traits = "0.1.3"
-toraniko-math = "0.1.3"
-toraniko-styles = "0.1.3"
-toraniko-model = "0.1.3"
-toraniko-utils = "0.1.3"
+toraniko = { version = "0.2", default-features = false, features = ["full"] }
+toraniko-primitives = "0.2"
+toraniko-traits = "0.2"
+toraniko-math = "0.2"
+toraniko-model = "0.2"
+toraniko-utils = "0.2"
 
 # DataFrames
 polars = { version = "0.46", default-features = false, features = ["lazy", "dtype-date", "dtype-datetime", "streaming", "rank", "rolling_window"] }

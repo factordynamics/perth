@@ -20,7 +20,7 @@ path = "src/main.rs"
 perth.workspace = true
 perth-data.workspace = true
 perth-risk.workspace = true
-perth-factors.workspace = true
+factors.workspace = true
 toraniko-model.workspace = true
 toraniko-traits.workspace = true
 

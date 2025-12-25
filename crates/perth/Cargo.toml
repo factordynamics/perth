@@ -10,7 +10,7 @@ authors.workspace = true
 description = "Perth: An institutional-grade factor model built on toraniko-rs"
 
 [package.metadata.cargo-udeps.ignore]
-normal = ["toraniko", "toraniko-model", "toraniko-styles"]
+normal = ["toraniko", "toraniko-model", "factors"]
 development = ["rstest"]
 
 [lints]
@@ -22,14 +22,12 @@ full = []
 
 [dependencies]
 perth-data.workspace = true
-perth-factors.workspace = true
 perth-risk.workspace = true
 perth-output.workspace = true
 
+factors.workspace = true
 toraniko.workspace = true
-toraniko-traits.workspace = true
 toraniko-model.workspace = true
-toraniko-styles.workspace = true
 
 polars.workspace = true
 thiserror.workspace = true

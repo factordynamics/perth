@@ -8,9 +8,11 @@ pub mod universe;
 
 // Re-export main types from sub-crates
 pub use perth_data as data;
-pub use perth_factors as factors;
 pub use perth_output as output;
 pub use perth_risk as risk;
+
+// Re-export factors crate
+pub use factors;
 
 // Re-export common universe types
 pub use universe::{Universe, gics::GicsSector, sp500::SP500Universe};

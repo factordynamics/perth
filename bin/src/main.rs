@@ -283,10 +283,19 @@ async fn analyze_symbol(
     println!(" ✓ (11 sectors)");
 
     // Compute factor scores
-    print!("Computing factor scores...");
+    // Determine the most recent date in the factor data for point-in-time computation
+    let target_date = factor_data
+        .column("date")
+        .ok()
+        .and_then(|c| c.str().ok())
+        .and_then(|s| s.iter().flatten().max())
+        .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .ok_or("Failed to determine target date from factor data")?;
+
+    print!("Computing factor scores for {}...", target_date);
     std::io::Write::flush(&mut std::io::stdout())?;
     let factor_engine = FactorEngine::new();
-    let style_df = match factor_engine.compute_all_scores(&factor_data) {
+    let style_df = match factor_engine.compute_all_scores(&factor_data, target_date) {
         Ok(df) => {
             println!(" ✓ ({} factors)", factor_engine.available_factors().len());
             df

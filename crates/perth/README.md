@@ -16,10 +16,10 @@ Perth is an umbrella crate that re-exports all Perth functionality and provides 
 
 ## Crates
 
-Perth re-exports functionality from four specialized crates:
+Perth re-exports functionality from specialized crates:
 
 - **`perth-data`**: Data fetching and caching (Yahoo Finance, SQLite)
-- **`perth-factors`**: Factor implementations (all seven categories)
+- **`factors`**: Factor implementations from the `factors` crate (69+ factors across seven categories)
 - **`perth-risk`**: Risk model (covariance estimation, specific risk)
 - **`perth-output`**: Reporting and export (attribution, risk summary, CSV/JSON)
 
@@ -41,17 +41,18 @@ Perth re-exports functionality from four specialized crates:
 
 ```rust
 use perth::universe::sp500::SP500Universe;
-use perth::factors::value::BookToPriceFactor;
+use perth::factors::value::BookToPrice;
+use perth::factors::Factor;
 use perth::risk::{RiskModel, EwmaCovarianceEstimator, SpecificRiskEstimator};
-use toraniko_traits::Factor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define universe
     let universe = SP500Universe::new();
     println!("Analyzing {} securities", universe.symbols().len());
 
-    // Create factors
-    let value_factor = BookToPriceFactor::default();
+    // Create factors (using the factors crate, re-exported by perth)
+    let value_factor = BookToPrice::default();
+    println!("Factor: {} - {}", value_factor.name(), value_factor.description());
 
     // Create risk model
     let cov_estimator = EwmaCovarianceEstimator::try_default()?;
@@ -74,11 +75,11 @@ let universe = SP500Universe::new();
 // Get all symbols
 let symbols = universe.symbols();
 
-// Filter by sector
-let tech_stocks = universe.filter_by_sector(GicsSector::InformationTechnology);
+// Get symbols in a specific sector
+let tech_stocks = universe.symbols_in_sector(GicsSector::InformationTechnology);
 
 // Get sector for a symbol
-if let Some(sector) = universe.get_sector("AAPL") {
+if let Some(sector) = universe.sector("AAPL") {
     println!("AAPL sector: {:?}", sector);
 }
 ```
@@ -109,7 +110,7 @@ All sub-crate functionality is re-exported:
 
 ```rust
 use perth::data;        // perth-data
-use perth::factors;     // perth-factors
+use perth::factors;     // factors crate
 use perth::risk;        // perth-risk
 use perth::output;      // perth-output
 ```
@@ -117,13 +118,12 @@ use perth::output;      // perth-output
 ## Dependencies
 
 - `perth-data`: Data fetching and caching
-- `perth-factors`: Factor implementations
+- `factors`: Factor implementations (69+ factors)
 - `perth-risk`: Risk modeling
 - `perth-output`: Reporting and export
 - `toraniko`: Core toraniko framework
 - `toraniko-traits`: Trait definitions
 - `toraniko-model`: Factor model implementation
-- `toraniko-styles`: Style factor support
 - `polars`: DataFrame operations
 - `ndarray`: Array operations
 - `tokio`: Async runtime

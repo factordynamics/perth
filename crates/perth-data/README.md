@@ -195,6 +195,7 @@ The Yahoo Finance provider implements rate limiting to respect API constraints:
 
 ```rust
 use std::time::Duration;
+use perth_data::yahoo::quotes::YahooQuoteProvider;
 
 let provider = YahooQuoteProvider::with_rate_limit(Duration::from_millis(2000));
 ```
