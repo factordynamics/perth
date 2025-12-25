@@ -17,13 +17,13 @@ development = ["rstest"]
 workspace = true
 
 [dependencies]
-toraniko-traits.workspace = true
-toraniko-math.workspace = true
+serde.workspace = true
+chrono.workspace = true
 polars.workspace = true
 ndarray.workspace = true
 thiserror.workspace = true
-chrono.workspace = true
-serde.workspace = true
+toraniko-math.workspace = true
+toraniko-traits.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

@@ -17,12 +17,12 @@ development = ["rstest"]
 workspace = true
 
 [dependencies]
+csv.workspace = true
+serde.workspace = true
+chrono.workspace = true
 polars.workspace = true
 thiserror.workspace = true
-chrono.workspace = true
-serde.workspace = true
 serde_json.workspace = true
-csv.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true

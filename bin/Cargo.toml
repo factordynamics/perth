@@ -18,19 +18,19 @@ path = "src/main.rs"
 
 [dependencies]
 perth.workspace = true
+factors.workspace = true
 perth-data.workspace = true
 perth-risk.workspace = true
-factors.workspace = true
 toraniko-model.workspace = true
 toraniko-traits.workspace = true
 
-polars.workspace = true
-ndarray.workspace = true
-chrono.workspace = true
+dirs.workspace = true
 clap.workspace = true
 tokio.workspace = true
+polars.workspace = true
+chrono.workspace = true
 futures.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
+ndarray.workspace = true
 indicatif.workspace = true
-dirs.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true

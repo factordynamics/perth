@@ -29,10 +29,10 @@ factors.workspace = true
 toraniko.workspace = true
 toraniko-model.workspace = true
 
+serde.workspace = true
+chrono.workspace = true
 polars.workspace = true
 thiserror.workspace = true
-chrono.workspace = true
-serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]

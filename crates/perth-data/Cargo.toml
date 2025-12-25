@@ -16,17 +16,17 @@ development = ["rstest", "approx"]
 workspace = true
 
 [dependencies]
-polars.workspace = true
-thiserror.workspace = true
-chrono.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-tokio.workspace = true
-yahoo_finance_api.workspace = true
 time.workspace = true
+serde.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+polars.workspace = true
 reqwest.workspace = true
 rusqlite.workspace = true
 quick-xml.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+yahoo_finance_api.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
