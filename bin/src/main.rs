@@ -287,9 +287,10 @@ async fn analyze_symbol(
     let target_date = factor_data
         .column("date")
         .ok()
-        .and_then(|c| c.str().ok())
-        .and_then(|s| s.iter().flatten().max())
-        .and_then(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .and_then(|c| c.cast(&DataType::String).ok())
+        .and_then(|c| c.str().ok().cloned())
+        .and_then(|s| s.iter().flatten().max().map(|s| s.to_string()))
+        .and_then(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").ok())
         .ok_or("Failed to determine target date from factor data")?;
 
     print!("Computing factor scores for {}...", target_date);
@@ -298,7 +299,10 @@ async fn analyze_symbol(
     let style_df = match factor_engine.compute_all_scores(&factor_data, target_date) {
         Ok(df) => {
             println!(" ✓ ({} factors)", factor_engine.available_factors().len());
-            df
+            // Convert date column back from String to Date type for consistency with other DataFrames
+            df.lazy()
+                .with_column(col("date").cast(DataType::Date))
+                .collect()?
         }
         Err(e) => {
             println!(" ✗");
@@ -309,6 +313,7 @@ async fn analyze_symbol(
     // Run factor returns estimation via WLS regression
     print!("Running cross-sectional regression...");
     std::io::Write::flush(&mut std::io::stdout())?;
+
     let estimator_config = EstimatorConfig {
         winsor_factor: Some(0.05),
         residualize_styles: true,
@@ -334,6 +339,7 @@ async fn analyze_symbol(
     // Compute attribution for target symbol
     print!("Computing attribution for {}...", symbol);
     std::io::Write::flush(&mut std::io::stdout())?;
+
     let attribution =
         match compute_attribution(&symbol, &factor_returns, &residuals, &style_df, &sector_df) {
             Ok(attr) => {

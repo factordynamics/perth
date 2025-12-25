@@ -99,7 +99,7 @@ impl FactorEngine {
         // Prepare input data for momentum (needs: symbol, date, close)
         let momentum_input = data.clone().lazy().select([
             col("symbol"),
-            col("date"),
+            col("date").cast(DataType::String),
             col("adjusted_close").alias("close"),
         ]);
         let momentum_scores = self.momentum.compute(&momentum_input, date)?;
@@ -112,7 +112,7 @@ impl FactorEngine {
         // Prepare input for beta (needs: symbol, date, close, market_return)
         let beta_input = data.clone().lazy().select([
             col("symbol"),
-            col("date"),
+            col("date").cast(DataType::String),
             col("adjusted_close").alias("close"),
             col("market_return"),
         ]);
@@ -121,7 +121,7 @@ impl FactorEngine {
         // Prepare input for historical volatility (needs: symbol, date, close)
         let vol_input = data.clone().lazy().select([
             col("symbol"),
-            col("date"),
+            col("date").cast(DataType::String),
             col("adjusted_close").alias("close"),
         ]);
         let vol_scores = self.historical_vol.compute(&vol_input, date)?;
@@ -129,7 +129,7 @@ impl FactorEngine {
         // Prepare input for amihud (needs: symbol, date, close, volume)
         let amihud_input = data.clone().lazy().select([
             col("symbol"),
-            col("date"),
+            col("date").cast(DataType::String),
             col("adjusted_close").alias("close"),
             col("volume").cast(DataType::Float64),
         ]);
@@ -162,6 +162,23 @@ impl FactorEngine {
                 [col("date"), col("symbol")],
                 JoinArgs::new(JoinType::Inner),
             )
+            // Rename factor columns to end with _score for toraniko-model compatibility
+            .with_columns([
+                col("medium_term_momentum").alias("momentum_score"),
+                col("log_market_cap").alias("size_score"),
+                col("market_beta").alias("beta_score"),
+                col("historical_volatility").alias("volatility_score"),
+                col("amihud_illiquidity").alias("illiquidity_score"),
+            ])
+            .select([
+                col("symbol"),
+                col("date"),
+                col("momentum_score"),
+                col("size_score"),
+                col("beta_score"),
+                col("volatility_score"),
+                col("illiquidity_score"),
+            ])
             .collect()?;
 
         Ok(combined)
@@ -172,18 +189,20 @@ impl FactorEngine {
     /// Uses log(market_cap) with cross-sectional standardization.
     /// This handles the case where we don't have shares_outstanding from Yahoo data.
     fn compute_size_factor(&self, data: &DataFrame, date: NaiveDate) -> FactorResult<DataFrame> {
-        let date_str = date.format("%Y-%m-%d").to_string();
-
         let raw_scores = data
             .clone()
             .lazy()
-            .filter(col("date").eq(lit(date_str)))
+            .filter(col("date").cast(DataType::String).eq(lit(date.to_string())))
             .with_column(
                 col("market_cap")
                     .log(std::f64::consts::E)
                     .alias("log_market_cap"),
             )
-            .select([col("symbol"), col("date"), col("log_market_cap")])
+            .select([
+                col("symbol"),
+                col("date").cast(DataType::String),
+                col("log_market_cap"),
+            ])
             .filter(col("log_market_cap").is_not_null())
             .collect()?;
 
